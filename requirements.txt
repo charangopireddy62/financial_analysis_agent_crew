@@ -1,0 +1,15 @@
+streamlit
+pandas
+yfinance
+matplotlib
+plotly
+requests
+beautifulsoup4
+openai
+langchain
+crewai
+textblob
+fpdf
+feedparser
+python-dateutil
+
