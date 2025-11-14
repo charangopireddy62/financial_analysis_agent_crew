@@ -3,9 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from utils.fetch_stock_data import fetch_stock_data, extract_kpis, create_price_chart, fetch_fundamentals
 from utils.fetch_stock_data import (
-    get_stock_data,
-    compute_indicators,
+    fetch_stock_data,
     extract_kpis,
+    create_price_chart,
+    fetch_fundamentals
 )
 
 class DataAnalystAgent:

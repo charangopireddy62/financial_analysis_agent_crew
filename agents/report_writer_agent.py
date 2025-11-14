@@ -38,29 +38,35 @@ class ReportWriterAgent:
         chart_path: str,
         start_date: str,
         end_date: str,
+        fundamentals: Dict[str, Any] = None
     ) -> str:
 
+        fundamentals = fundamentals or {}
         news_section = self._format_news_section(news_items)
 
-        # Highly optimized prompt for Gemma 3 12B
+        # Optimized no-hallucination prompt for Gemma-3 12B
         prompt = f"""
-You are a professional financial analyst. Write a **clean, factual, and structured** equity research–style report 
-for the stock **{stock_symbol}** covering the date range **{start_date} → {end_date}**.
+You are a professional financial analyst. Write a clean, factual, structured equity-research report 
+for **{stock_symbol}**, analyzing the period **{start_date} → {end_date}**.
 
-You MUST strictly follow this structure:
+Follow EXACTLY this structure:
 
 1. Executive Summary  
 2. Price Performance Overview  
 3. Key Indicators (KPIs)  
 4. Market Sentiment Analysis  
-5. Recent News Highlights  
-6. Risks and Opportunities  
-7. Final Recommendation  
+5. Fundamental Valuation Overview  
+6. Recent News Highlights  
+7. Risks and Opportunities  
+8. Final Recommendation  
 
-Use the following provided data WITHOUT inventing anything:
+Use ONLY the data provided below. Never invent values.
 
 ### KPIs
 {kpis}
+
+### Fundamentals
+{fundamentals}
 
 ### Sentiment Summary
 {sentiment_summary}
@@ -72,12 +78,11 @@ Use the following provided data WITHOUT inventing anything:
 {chart_path}
 
 STRICT RULES:
-- Do NOT hallucinate numbers, dates, news events, or prices.
-- Base the ENTIRE report ONLY on the provided KPIs and news items.
-- Keep every section factual and concise.
-- Avoid dramatic language, speculation, or made-up reasoning.
-- If data is missing, acknowledge it instead of inventing content.
-- Write like a disciplined financial analyst preparing a client report.
+- No made-up data. No hallucinated events, numbers, or dates.
+- If any KPI or fundamental value is missing, say so clearly.
+- Keep the tone professional like a real equity analyst.
+- Use short, factual paragraphs and bullet points.
+- Do NOT over-speculate; conclusions must follow from provided data.
 """
 
         headers = {
@@ -88,11 +93,18 @@ STRICT RULES:
         body = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You are a senior financial analyst who writes precise, factual reports without hallucination."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a senior financial analyst. "
+                        "You write precise, factual, structured reports. "
+                        "You strictly avoid inventing any information."
+                    ),
+                },
                 {"role": "user", "content": prompt},
             ],
-            "temperature": 0.05,  # Ultra-low randomness for accuracy
-            "max_tokens": 2000,
+            "temperature": 0.05,      # For maximum factual accuracy
+            "max_tokens": 2200,
         }
 
         response = requests.post(self.endpoint, headers=headers, json=body)
@@ -105,23 +117,37 @@ STRICT RULES:
         return response.json()["choices"][0]["message"]["content"]
 
 
-# Smoke test (run: python -m agents.report_writer_agent)
+# Smoke test (python -m agents.report_writer_agent)
 if __name__ == "__main__":
     agent = ReportWriterAgent()
 
-    # Sample test inputs
     sample_news = [
-        {"title": "TCS expands AI capabilities", "url": "https://example.com/a", "sentiment": {"label": "positive"}},
-        {"title": "IT sector faces macroeconomic pressures", "url": "https://example.com/b", "sentiment": {"label": "negative"}},
+        {"title": "TCS expands AI capabilities", "url": "https://example.com/a",
+         "sentiment": {"label": "positive"}},
+        {"title": "IT sector faces macroeconomic pressures", "url": "https://example.com/b",
+         "sentiment": {"label": "negative"}},
     ]
 
-    sample_sent = {"count": 2, "positive": 1, "negative": 1, "neutral": 0, "avg_polarity": 0.01}
+    sample_sent = {
+        "count": 2,
+        "positive": 1,
+        "negative": 1,
+        "neutral": 0,
+        "avg_polarity": 0.01,
+    }
 
     sample_kpis = {
         "current_price": 4000,
         "ma20": 4020,
         "ma50": 3950,
-        "volatility": 0.02
+        "volatility": 0.02,
+    }
+
+    sample_fundamentals = {
+        "pe_ratio": 32.1,
+        "eps": 104.5,
+        "market_cap": 13_000_000_000,
+        "beta": 0.91,
     }
 
     print("\n--- Testing ReportWriterAgent (Gemma 3 12B) ---\n")
@@ -129,13 +155,15 @@ if __name__ == "__main__":
     report = agent.write_report(
         stock_symbol="TCS.NS",
         kpis=sample_kpis,
+        fundamentals=sample_fundamentals,
         news_items=sample_news,
         sentiment_summary=sample_sent,
         chart_path="data/raw/TCS.NS_chart.png",
         start_date="2024-01-01",
-        end_date="2024-12-31"
+        end_date="2024-12-31",
     )
 
     print(report)
+
 
 
