@@ -31,17 +31,25 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
 def extract_kpis(df: pd.DataFrame) -> dict:
     """
     Compute key performance indicators.
+    Safely extracts last row and converts indicators to scalar values.
     """
+    # Safely get the latest row (returns a single Series)
     latest = df.tail(1).squeeze()
 
+    def safe(val):
+        try:
+            return round(float(val), 2)
+        except:
+            return None
 
     kpis = {
-        "current_price": round(latest["Close"], 2),
-        "day_high": round(latest["High"], 2),
-        "day_low": round(latest["Low"], 2),
-        "ma20": round(latest["MA20"], 2) if not pd.isna(latest["MA20"]) else None,
-        "ma50": round(latest["MA50"], 2) if not pd.isna(latest["MA50"]) else None,
-        "volatility": round(latest["Volatility"], 4) if not pd.isna(latest["Volatility"]) else None,
+        "current_price": safe(latest.get("Close")),
+        "day_high": safe(latest.get("High")),
+        "day_low": safe(latest.get("Low")),
+        "ma20": safe(latest.get("MA20")),
+        "ma50": safe(latest.get("MA50")),
+        "volatility": safe(latest.get("Volatility")),
     }
 
     return kpis
+
