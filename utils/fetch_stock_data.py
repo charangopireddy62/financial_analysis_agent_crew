@@ -32,7 +32,8 @@ def extract_kpis(df: pd.DataFrame) -> dict:
     """
     Compute key performance indicators.
     """
-    latest = df.iloc[-1]
+    latest = df.tail(1).squeeze()
+
 
     kpis = {
         "current_price": round(latest["Close"], 2),
