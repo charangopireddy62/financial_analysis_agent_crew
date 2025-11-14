@@ -1,19 +1,21 @@
 import os
-import requests
+from openai import OpenAI
 from typing import List, Dict, Any
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# Load key from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 class ReportWriterAgent:
-    def __init__(self, model="together/deepseek-r1t2-chimera"):
-        self.model = model
-        self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
+    """
+    Uses OpenAI GPT-3.5 Turbo to generate a structured financial report.
+    """
 
+    def __init__(self, model="gpt-3.5-turbo"):
+        self.model = model
 
     def _format_news_section(self, news_items: List[Dict[str, Any]]) -> str:
-        """
-        Converts news list into a clean bullet-section for the LLM.
-        """
         lines = []
         for i, item in enumerate(news_items, 1):
             title = item.get("title", "")
@@ -32,17 +34,14 @@ class ReportWriterAgent:
         start_date: str,
         end_date: str,
     ) -> str:
-        """
-        Generate the final investment report using the LLM.
-        """
 
         news_section = self._format_news_section(news_items)
 
         prompt = f"""
-Write a professional, factual financial analysis report for the stock **{stock_symbol}**.
+Write a highly structured, professional financial analysis report for **{stock_symbol}**.
 Date Range: {start_date} → {end_date}
 
-Use EXACTLY this structure:
+Use this exact outline:
 
 1. Executive Summary  
 2. Price Performance Overview  
@@ -52,53 +51,38 @@ Use EXACTLY this structure:
 6. Risks and Opportunities  
 7. Final Recommendation  
 
-### KPIs Provided:
+### KPIs:
 {kpis}
 
-### Sentiment Summary:
+### Market Sentiment Summary:
 {sentiment_summary}
 
-### Recent News Articles:
+### Recent News:
 {news_section}
 
-### Chart File Path (for reference):
+### Chart File Path:
 {chart_path}
 
-STRICT RULES:
-- Use ONLY the data provided above.
-- DO NOT guess numbers or invent additional information.
-- DO NOT create extra news or events.
-- Keep tone professional, like an equity research report.
-- Keep paragraphs short and clear.
-- Avoid dramatic or marketing tone.
+RULES:
+- Use ONLY the provided information. Do NOT invent numbers.
+- Tone should match professional equity research reports.
+- Keep the content concise, factual, and structured.
+- Never hallucinate events or data not included above.
 """
 
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-        }
-
-        body = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": "You are an expert financial analyst."},
-                {"role": "user", "content": prompt}
+        response = client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are a senior financial analyst."},
+                {"role": "user", "content": prompt},
             ],
-            "temperature": 0.1,  # stable output, fewer hallucinations
-        }
+            temperature=0.2
+        )
 
-        response = requests.post(self.endpoint, headers=headers, json=body)
-
-        if response.status_code != 200:
-            raise RuntimeError(
-                f"OpenRouter API error {response.status_code}: {response.text}"
-            )
-
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+        return response.choices[0].message.content
 
 
-# Smoke test (run: python -m agents.report_writer_agent)
+# Standalone Test
 if __name__ == "__main__":
     agent = ReportWriterAgent()
 
@@ -116,7 +100,8 @@ if __name__ == "__main__":
         "volatility": 0.02
     }
 
-    print("\n--- Running Test Report ---\n")
+    print("\n--- Running Test Report (OpenAI GPT-3.5 Turbo) ---\n")
+
     report = agent.write_report(
         stock_symbol="TCS.NS",
         kpis=sample_kpis,
@@ -126,4 +111,6 @@ if __name__ == "__main__":
         start_date="2024-01-01",
         end_date="2024-12-31"
     )
+
     print(report)
+
