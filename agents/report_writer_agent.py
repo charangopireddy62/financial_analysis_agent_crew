@@ -5,13 +5,10 @@ from typing import List, Dict, Any
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 class ReportWriterAgent:
-    """
-    Uses OpenRouter (gpt-oss-20b) to generate a structured financial report.
-    """
-
-    def __init__(self, model="openrouter/gpt-oss-20b"):
+    def __init__(self, model="together/deepseek-r1t2-chimera"):
         self.model = model
         self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
+
 
     def _format_news_section(self, news_items: List[Dict[str, Any]]) -> str:
         """
