@@ -31,11 +31,8 @@ class DataAnalystAgent:
         # Step 4: Generate chart
         chart_path = self.generate_chart(df, symbol)
 
-        return {
-            "dataframe": df,
-            "kpis": kpis,
-            "chart_path": chart_path,
-        }
+        
+        return kpis, chart_path
 
     def generate_chart(self, df: pd.DataFrame, symbol: str) -> str:
         """
