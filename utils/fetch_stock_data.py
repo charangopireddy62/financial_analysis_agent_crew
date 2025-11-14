@@ -52,4 +52,44 @@ def extract_kpis(df: pd.DataFrame) -> dict:
     }
 
     return kpis
+def fetch_fundamentals(symbol):
+    tk = yf.Ticker(symbol)
+    info = tk.info
+    
+    return {
+        "pe_ratio": info.get("trailingPE"),
+        "forward_pe": info.get("forwardPE"),
+        "market_cap": info.get("marketCap"),
+        "beta": info.get("beta"),
+        "pb_ratio": info.get("priceToBook"),
+        "eps": info.get("trailingEps"),
+        "dividend_yield": info.get("dividendYield"),
+        "industry": info.get("industry"),
+        "sector": info.get("sector"),
+    }
+import yfinance as yf
+
+def fetch_fundamentals(symbol: str) -> dict:
+    """
+    Fetch fundamental indicators such as P/E, EPS, Beta, Market Cap, etc.
+    using yfinance's ticker.info() dictionary.
+    """
+
+    try:
+        ticker = yf.Ticker(symbol)
+        info = ticker.info  # dictionary of fundamentals
+
+        return {
+            "pe_ratio": info.get("trailingPE"),
+            "forward_pe": info.get("forwardPE"),
+            "eps": info.get("trailingEps"),
+            "market_cap": info.get("marketCap"),
+            "beta": info.get("beta"),
+            "pb_ratio": info.get("priceToBook"),
+            "sector": info.get("sector"),
+            "industry": info.get("industry")
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from utils.fetch_stock_data import fetch_stock_data, extract_kpis, create_price_chart, fetch_fundamentals
 from utils.fetch_stock_data import (
     get_stock_data,
     compute_indicators,
@@ -18,21 +18,24 @@ class DataAnalystAgent:
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def analyze_stock(self, symbol: str, start_date: str, end_date: str):
-        # Step 1: Fetch Data
-        df = get_stock_data(symbol, start_date, end_date)
+    
 
-        # Step 2: Compute indicators
-        df = compute_indicators(df)
+    def analyze_stock(self, stock_symbol, start_date, end_date):
 
-        # Step 3: Extract KPIs
+        df = fetch_stock_data(stock_symbol, start_date, end_date)
         kpis = extract_kpis(df)
+        chart_path = create_price_chart(df, stock_symbol)
 
-        # Step 4: Generate chart
-        chart_path = self.generate_chart(df, symbol)
+        fundamentals = fetch_fundamentals(stock_symbol)
 
-        
-        return kpis, chart_path
+        return {
+            "dataframe": df,
+            "kpis": kpis,
+            "fundamentals": fundamentals,
+            "chart_path": chart_path
+    }
+
+
 
     def generate_chart(self, df: pd.DataFrame, symbol: str) -> str:
         """

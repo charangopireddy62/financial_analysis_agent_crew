@@ -28,6 +28,7 @@ class Orchestrator:
 
         Returns a dict with keys:
             - kpis
+            - fundamentals
             - chart_path
             - news_items
             - sentiment_summary
@@ -40,12 +41,17 @@ class Orchestrator:
             sentiment_summary = self.researcher.analyze_sentiment_summary(news_items)
 
             print("\n📊 Step 2: Fetching stock data & KPIs...")
-            kpis, chart_path = self.analyst.analyze_stock(stock_symbol, start_date, end_date)
+            analysis = self.analyst.analyze_stock(stock_symbol, start_date, end_date)
+
+            kpis = analysis["kpis"]
+            fundamentals = analysis["fundamentals"]
+            chart_path = analysis["chart_path"]
 
             print("\n📝 Step 3: Generating financial report...")
             report_text = self.writer.write_report(
                 stock_symbol=stock_symbol,
                 kpis=kpis,
+                fundamentals=fundamentals,
                 news_items=news_items,
                 sentiment_summary=sentiment_summary,
                 chart_path=chart_path,
@@ -64,6 +70,7 @@ class Orchestrator:
 
             return {
                 "kpis": kpis,
+                "fundamentals": fundamentals,
                 "chart_path": chart_path,
                 "news_items": news_items,
                 "sentiment_summary": sentiment_summary,
@@ -75,7 +82,7 @@ class Orchestrator:
             print("\n❌ ERROR OCCURRED!")
             traceback.print_exc()
             return {"error": str(e)}
-            
+
 
 # Allow direct terminal testing
 if __name__ == "__main__":
@@ -89,3 +96,4 @@ if __name__ == "__main__":
     )
 
     print("\n\nOUTPUT SUMMARY:\n", output)
+

@@ -3,22 +3,28 @@ from orchestrator import Orchestrator
 import base64
 import os
 
-st.set_page_config(page_title="AI Financial Analyst", layout="wide")
+# ------------------------ STREAMLIT CONFIG ------------------------
+st.set_page_config(
+    page_title="AI Financial Analyst",
+    layout="wide",
+    page_icon="📈"
+)
 
 st.title("📈 AI Financial Analysis Agent")
-st.write("Your personal multi-agent system for financial research, KPI analysis, sentiment mining, and AI-generated insights.")
+st.write("A multi-agent AI system for financial research, KPI analysis, sentiment mining, and automated report writing.")
 
-# Input Panel
-st.sidebar.header("Analysis Settings")
+st.sidebar.header("⚙️ Analysis Settings")
 
-stock_symbol = st.sidebar.text_input("Stock Symbol", value="TCS.NS")
+# Inputs
+stock_symbol = st.sidebar.text_input("Stock Symbol (Example: TCS.NS, INFY.NS)", value="TCS.NS")
 
 start_date = st.sidebar.date_input("Start Date")
 end_date = st.sidebar.date_input("End Date")
 
-run_btn = st.sidebar.button("Run Analysis 🚀")
+run_btn = st.sidebar.button("🚀 Run Analysis")
 
-# When user clicks run
+
+# ------------------------ MAIN EXECUTION ------------------------
 if run_btn:
     st.subheader(f"🚀 Running Analysis for **{stock_symbol}**")
 
@@ -31,58 +37,111 @@ if run_btn:
             end_date=str(end_date)
         )
 
+    # -------------------------------------------------------------
+    # ERROR HANDLING
+    # -------------------------------------------------------------
     if "error" in result:
         st.error(f"❌ Error: {result['error']}")
+        st.stop()
+
+    st.success("✅ Analysis Completed Successfully")
+
+    # -------------------------------------------------------------
+    # 1. KPIs SECTION
+    # -------------------------------------------------------------
+    st.header("📊 Key Performance Indicators")
+    kpis = result.get("kpis", {})
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Current Price", kpis.get("current_price"))
+    col2.metric("Day High", kpis.get("day_high"))
+    col3.metric("Day Low", kpis.get("day_low"))
+
+    col4, col5, col6 = st.columns(3)
+    col4.metric("MA20", kpis.get("ma20"))
+    col5.metric("MA50", kpis.get("ma50"))
+    col6.metric("Volatility", kpis.get("volatility"))
+
+    # -------------------------------------------------------------
+    # 2. FUNDAMENTALS SECTION
+    # -------------------------------------------------------------
+    st.header("📉 Fundamental Indicators (Yahoo Finance)")
+
+    fund = result.get("fundamentals", {})
+
+    if fund:
+        f1, f2, f3 = st.columns(3)
+        f1.metric("P/E Ratio", fund.get("pe_ratio"))
+        f2.metric("Forward P/E", fund.get("forward_pe"))
+        f3.metric("EPS", fund.get("eps"))
+
+        f4, f5, f6 = st.columns(3)
+        f4.metric("Market Cap", fund.get("market_cap"))
+        f5.metric("Beta", fund.get("beta"))
+        f6.metric("P/B Ratio", fund.get("pb_ratio"))
+
+        st.write(f"**Sector:** {fund.get('sector')}")
+        st.write(f"**Industry:** {fund.get('industry')}")
     else:
-        st.success("✅ Analysis Completed Successfully")
+        st.info("⚠️ No fundamentals available for this stock.")
 
-        # ----- KPIs -----
-        st.header("📊 Key Performance Indicators")
-        kpis = result["kpis"]
+    # -------------------------------------------------------------
+    # 3. CHART SECTION
+    # -------------------------------------------------------------
+    st.header("📈 Price Chart")
+    chart_path = result.get("chart_path")
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Current Price", kpis["current_price"])
-        col2.metric("Day High", kpis["day_high"])
-        col3.metric("Day Low", kpis["day_low"])
+    if chart_path and os.path.exists(chart_path):
+        st.image(chart_path, use_container_width=True)
+    else:
+        st.warning("⚠️ Chart image missing.")
 
-        col4, col5, col6 = st.columns(3)
-        col4.metric("MA20", kpis["ma20"])
-        col5.metric("MA50", kpis["ma50"])
-        col6.metric("Volatility", kpis["volatility"])
+    # -------------------------------------------------------------
+    # 4. NEWS + SENTIMENT SECTION
+    # -------------------------------------------------------------
+    st.header("📰 Recent News & Sentiment")
 
-        # ----- Chart -----
-        st.header("📈 Price Chart")
-        if os.path.exists(result["chart_path"]):
-            st.image(result["chart_path"], use_column_width=True)
-        else:
-            st.warning("Chart image missing.")
-
-        # ----- News -----
-        st.header("📰 Recent News & Sentiment")
-        for n in result["news_items"]:
-            st.write(f"### {n['title']}")
-            st.write(f"🔗 [{n['url']}]({n['url']})")
-            st.write(f"Sentiment: **{n['sentiment']['label']}**")
+    news_items = result.get("news_items", [])
+    if not news_items:
+        st.info("No recent news found for this stock.")
+    else:
+        for news in news_items:
+            st.write(f"### {news['title']}")
+            st.write(f"🔗 [{news['url']}]({news['url']})")
+            st.write(f"🧠 Sentiment: **{news['sentiment']['label']}**")
             st.write("---")
 
-        # ----- AI Report -----
-        st.header("📝 AI-Generated Financial Report")
-        st.write(result["report_text"])
+    # -------------------------------------------------------------
+    # 5. AI REPORT SECTION
+    # -------------------------------------------------------------
+    st.header("📝 AI-Generated Financial Report")
 
-        # ----- PDF Download -----
-        st.header("📄 Download Report PDF")
+    report_text = result.get("report_text", "")
+    st.write(report_text)
 
-        pdf_path = result["pdf_path"]
+    # -------------------------------------------------------------
+    # 6. PDF DOWNLOAD SECTION
+    # -------------------------------------------------------------
+    st.header("📄 Download Report PDF")
 
-        if os.path.exists(pdf_path):
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
+    pdf_path = result.get("pdf_path")
 
-            st.download_button(
-                label="⬇ Download PDF Report",
-                data=pdf_bytes,
-                file_name=os.path.basename(pdf_path),
-                mime="application/pdf"
-            )
-        else:
-            st.warning("PDF not found.")
+    if pdf_path and os.path.exists(pdf_path):
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+
+        st.download_button(
+            label="⬇ Download Full PDF Report",
+            data=pdf_bytes,
+            file_name=os.path.basename(pdf_path),
+            mime="application/pdf"
+        )
+    else:
+        st.warning("⚠️ PDF could not be generated.")
+
+
+# -----------------------------------------------------------------
+# END OF APP
+# -----------------------------------------------------------------
+
+
